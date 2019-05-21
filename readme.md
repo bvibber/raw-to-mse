@@ -16,7 +16,7 @@ I'm investigating a hackaround to feed uncompressed data by repacking it into fo
 
 # Fomat details
 
-## Muxing: fragmanted MP4
+## Muxing: fragmented MP4
 
 For now I plan to outsource muxing to [mux.js](https://github.com/videojs/mux.js).
 
