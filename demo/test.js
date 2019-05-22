@@ -85,6 +85,7 @@ let fs = require('fs');
 
 
 let mp4 = require('mux.js/lib/mp4/mp4-generator.js');
+let h264 = require('mux.js/lib/codecs/h264.js');
 let frameUtils = require('mux.js/lib/mp4/frame-utils.js');
 let trackDecodeInfo = require('mux.js/lib/mp4/track-decode-info.js');
 let transmuxer = require('mux.js/lib/mp4/transmuxer.js');
@@ -115,9 +116,11 @@ async function doit() {
     };
     let tracks = [track];
 
-    let stream = new transmuxer.VideoSegmentStream(track, {
+    let stream = new h264.H264Stream();
+    let vsstream = new transmuxer.VideoSegmentStream(track, {
         keepOriginalTimestamps: true
     });
+    stream.pipe(vsstream);
     while (true) {
         let {frame, timestamp} = await decoder.decodeFrame();
         let yuvFrame = frame;
@@ -128,7 +131,7 @@ async function doit() {
             // Annex B style
             stream.push({
                 trackId: 1,
-                nalUnitType: 'access_unit_delimiter_rbsp',
+                type: 'video',
                 pts: pts,
                 dts: pts,
                 data: new Uint8Array([
@@ -142,19 +145,13 @@ async function doit() {
                 trackId: 1,
                 nalUnitType: 'seq_parameter_set_rbsp',
                 data: sps,
-                config: {
-                    width: encoder.width,
-                    height: encoder.height,
-                    profileIdc: 66, // baseline
-                    levelIdc: 10, // 1.0
-                    profileCompatibility: 0,
-                },
+                type: 'video',
                 pts: pts,
                 dts: pts,
             });
             stream.push({
                 trackId: 1,
-                nalUnitType: 'pic_parameter_set_rbsp',
+                type: 'video',
                 data: pps,
                 pts: pts,
                 dts: pts,
@@ -162,7 +159,7 @@ async function doit() {
         
             stream.push({
                 trackId: 1,
-                nalUnitType: 'slice_layer_without_partitioning_rbsp_idr',
+                type: 'video',
                 data: new Uint8Array(buf),
                 pts: pts,
                 dts: pts,
@@ -172,7 +169,7 @@ async function doit() {
         }
     }
 
-    stream.on('data', (out) => {
+    vsstream.on('data', (out) => {
         let init = mp4.initSegment(tracks);
         process.stdout.write(init);
         process.stdout.write(out.boxes);
