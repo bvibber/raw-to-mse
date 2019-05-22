@@ -90,8 +90,8 @@ let frameUtils = require('mux.js/lib/mp4/frame-utils.js');
 let trackDecodeInfo = require('mux.js/lib/mp4/track-decode-info.js');
 let transmuxer = require('mux.js/lib/mp4/transmuxer.js');
 
-async function doit() {
-    let filedata = fs.readFileSync('lizard.webm');
+async function doit(infile) {
+    let filedata = fs.readFileSync(infile);
 
     let decoder = new Decoder();
     await decoder.init(filedata);
@@ -178,7 +178,9 @@ async function doit() {
     stream.flush();
 }
 
-doit().then(() => {
+let infile = process.argv[2] || 'lizard.webm';
+
+doit(infile).then(() => {
     process.stdout.end();
     process.exit(0);
 }).catch((e) => {
