@@ -22,11 +22,20 @@ For now I plan to outsource muxing to [mux.js](https://github.com/videojs/mux.js
 
 ## Video: h.264
 
-Based on a conference talk questioner's suggestion to look into Ben Mesander's "[The World's Smallest h.264 Encoder](https://cardinalpeak.com/blog/worlds-smallest-h-264-encoder/)", I've ported Ben's example code to JavaScript and will experiment with adding full support for various resolutions.
+Based on a conference talk questioner's suggestion to look into Ben Mesander's "[The World's Smallest h.264 Encoder](https://cardinalpeak.com/blog/worlds-smallest-h-264-encoder/)", I've ported Ben's example code to JavaScript and added support for variable resolutions.
 
 This uses h.264's I_PCM mode to encode macroblocks full of raw YUV data, without even doing a DCT transform. This is essentially a shuffled buffer copy, as the rectangular input data is cut into 16x16 pixel macroblocks and copied over a bit at a time with some header/footer bytes.
 
 There is no compression going on, just some headers in a fairly normal kind of bitstream and the raw YUV data, so in theory no one runs afoul of anything patented.
+
+Currently this seems to work, but is unoptimized and missing a few details. The output is marked as main-compatible baseline profile, level 5.1.
+
+Playback compatibility testing:
+* Firefox, Chrome, Chromium Edge: ok up to 720p; choppy at 1080p
+* Safari: ok up to 720p; no frames displayed at 1080p
+* (pre-Chromium) Edge: ok up to 480p; no frames displayed at 720p or 1080p
+
+The failures at higher resolutions may be due to enforcement of rate limit constraints (?) or some other unknown problem.
 
 ## Audio: FLAC
 
