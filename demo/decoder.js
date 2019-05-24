@@ -1,9 +1,5 @@
 // wrapper on ogv.js's codecs
 
-/*
-let OGVDemuxerWebMW = require('ogv/dist/ogv-demuxer-webm-wasm.js');
-let OGVDecoderVideoVP9W = require('ogv/dist/ogv-decoder-video-vp9-wasm.js');
-*/
 let {OGVLoader} = require('ogv');
 
 require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-decoder-video-vp9-wasm.js');
@@ -12,16 +8,6 @@ require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-demuxer-web
 require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-demuxer-webm-wasm.wasm');
 require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-worker-audio.js');
 require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-worker-video.js');
-
-/*
-function locateFile(url) {
-    if (url.slice(0, 5) === 'data:') {
-      return url;
-    } else {
-      return __dirname + '/../node_modules/ogv/dist/' + url;
-    }
-}
-*/
 
 class Decoder {
     construct() {
@@ -43,11 +29,13 @@ class Decoder {
             OGVLoader.loadClass('OGVDecoderVideoVP9W', (classWrapper) => {
                 OGVDecoderVideoVP9W = classWrapper;
                 resolve();
+            }, {
+                worker: true
             });
         });
 
         await new Promise((resolve, _reject) => {
-            OGVDemuxerWebMW(/*{locateFile}*/).then((module) => {
+            OGVDemuxerWebMW().then((module) => {
                 this.demuxer = module;
                 resolve();
             });
@@ -63,7 +51,7 @@ class Decoder {
         }
         await new Promise((resolve, _reject) => {
             let videoFormat = this.demuxer.videoFormat;
-            OGVDecoderVideoVP9W({/*locateFile,*/ videoFormat}).then((module) => {
+            OGVDecoderVideoVP9W({videoFormat}).then((module) => {
                 this.decoder = module;
                 resolve();
             });
