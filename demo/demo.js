@@ -3,7 +3,9 @@ let StreamFile = require('stream-file');
 let YUVToMP4 = require('../lib/yuv-to-mp4.js');
 
 let vid = document.querySelector('#sink');
-let mediaSource = new MediaSource();
+let source = document.querySelector('#source');
+let mediaSource;
+let doContinue;
 
 async function pauseThread() {
     await new Promise((resolve, reject) => {
@@ -13,12 +15,28 @@ async function pauseThread() {
 }
 
 async function doit() {
+    if (mediaSource) {
+        mediaSource.endOfStream();
+    }
+    if (doContinue) {
+        vid.removeEventListener('timeupdate', doContinue);
+        doContinue = undefined;
+    }
+    mediaSource = new MediaSource();
+
+    vid.src = URL.createObjectURL(mediaSource);
+    await new Promise((resolve, _reject) => {
+        mediaSource.addEventListener('sourceopen', (e) => {
+            URL.revokeObjectURL(vid.src);
+            resolve();
+        });
+    });
+    
     let chunkSize = 128 * 1024;
     let chunkDuration = 1.0;
 
-    let caminandes3 = 'https://upload.wikimedia.org/wikipedia/commons/transcoded/a/ab/Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm/Caminandes_3_-_Llamigos_-_Blender_Animated_Short.webm.360p.vp9.webm';
     let stream = new StreamFile({
-        url: caminandes3,
+        url: source.value,
     });
     await stream.load();
     let initialData = await stream.read(chunkSize);
@@ -45,7 +63,6 @@ async function doit() {
         }
     });
 
-    let doContinue;
     let continueDecoding = async () => {
         if (decoding) {
             // already working on it.
@@ -90,7 +107,7 @@ async function doit() {
         startTime = endTime;
         decoding = false;
     };
-    doContinue = () => {
+    doContinue = (_event) => {
         if (!decoding && !sourceBuffer.updating) {
             continueDecoding().then((_result) => {}).catch((error) => {
                 console.log('error', error);
@@ -98,19 +115,20 @@ async function doit() {
         }
     };
 
-    vid.addEventListener('timeupdate', (_event) => {
-        doContinue();
-    });
+    vid.addEventListener('timeupdate', doContinue);
     doContinue();
 }
 
-vid.src = URL.createObjectURL(mediaSource);
-mediaSource.addEventListener('sourceopen', (e) => {
-    URL.revokeObjectURL(vid.src);
-
+function start() {
     doit().then((_result) => {
         console.log('ready for playback.');
     }).catch((error) => {
         console.log('error', error);
     });
+}
+
+source.addEventListener('change', (_event) => {
+    start();
 });
+
+start();
