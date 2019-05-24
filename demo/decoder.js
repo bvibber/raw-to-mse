@@ -1,8 +1,19 @@
 // wrapper on ogv.js's codecs
 
+/*
 let OGVDemuxerWebMW = require('ogv/dist/ogv-demuxer-webm-wasm.js');
 let OGVDecoderVideoVP9W = require('ogv/dist/ogv-decoder-video-vp9-wasm.js');
+*/
+let {OGVLoader} = require('ogv');
 
+require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-decoder-video-vp9-wasm.js');
+require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-decoder-video-vp9-wasm.wasm');
+require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-demuxer-webm-wasm.js');
+require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-demuxer-webm-wasm.wasm');
+require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-worker-audio.js');
+require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-worker-video.js');
+
+/*
 function locateFile(url) {
     if (url.slice(0, 5) === 'data:') {
       return url;
@@ -10,6 +21,7 @@ function locateFile(url) {
       return __dirname + '/../node_modules/ogv/dist/' + url;
     }
 }
+*/
 
 class Decoder {
     construct() {
@@ -18,15 +30,29 @@ class Decoder {
     }
 
     async init(initialData) {
+        let OGVDemuxerWebMW;
+        let OGVDecoderVideoVP9W;
+
         await new Promise((resolve, _reject) => {
-            OGVDemuxerWebMW({locateFile}).then((module) => {
-                this.demuxer = module;
+            OGVLoader.loadClass('OGVDemuxerWebMW', (classWrapper) => {
+                OGVDemuxerWebMW = classWrapper;
                 resolve();
             });
         });
         await new Promise((resolve, _reject) => {
-            this.demuxer.receiveInput(initialData, resolve);
+            OGVLoader.loadClass('OGVDecoderVideoVP9W', (classWrapper) => {
+                OGVDecoderVideoVP9W = classWrapper;
+                resolve();
+            });
         });
+
+        await new Promise((resolve, _reject) => {
+            OGVDemuxerWebMW(/*{locateFile}*/).then((module) => {
+                this.demuxer = module;
+                resolve();
+            });
+        });
+        await this.receiveInput(initialData);
         while (!this.demuxer.loadedMetadata) {
             let more = await new Promise((resolve, _reject) => {
                 this.demuxer.process(resolve);
@@ -37,13 +63,19 @@ class Decoder {
         }
         await new Promise((resolve, _reject) => {
             let videoFormat = this.demuxer.videoFormat;
-            OGVDecoderVideoVP9W({locateFile, videoFormat}).then((module) => {
+            OGVDecoderVideoVP9W({/*locateFile,*/ videoFormat}).then((module) => {
                 this.decoder = module;
                 resolve();
             });
         });
         await new Promise((resolve, _reject) => {
             this.decoder.init(resolve);
+        });
+    }
+
+    async receiveInput(data) {
+        await new Promise((resolve, _reject) => {
+            this.demuxer.receiveInput(data, resolve);
         });
     }
 
