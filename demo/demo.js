@@ -5,6 +5,13 @@ let YUVToMP4 = require('../lib/yuv-to-mp4.js');
 let vid = document.querySelector('#sink');
 let mediaSource = new MediaSource();
 
+async function pauseThread() {
+    await new Promise((resolve, reject) => {
+        //setImmediate(resolve);
+        setTimeout(resolve, 0);
+    });
+}
+
 async function doit() {
     let chunkSize = 128 * 1024;
     let chunkDuration = 1.0;
@@ -68,6 +75,8 @@ async function doit() {
             }
             encoder.appendFrame(frame, timestamp);
             endTime = timestamp;
+
+            await pauseThread(); // hack until workers set up
         }
         let vid_body = encoder.flush();
         console.log('appending at ' + startTime + ' to ' + endTime);
