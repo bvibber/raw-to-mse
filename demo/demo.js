@@ -46,6 +46,10 @@ async function doit() {
         }
         if (endTime - vid.currentTime > chunkDuration * 3) {
             // We've got some buffer space, don't bother yet.
+            // But do clear out any old stuff
+            if (vid.currentTime > chunkDuration * 3) {
+                sourceBuffer.remove(0, vid.currentTime);
+            }
             return;
         }
         decoding = true;
