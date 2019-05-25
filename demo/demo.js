@@ -33,7 +33,8 @@ async function doit() {
     });
     
     let chunkSize = 128 * 1024;
-    let chunkDuration = 1.0;
+    let chunkDuration = 0.5; // half second, about 12 frames at 24fps. fits 720p24 chunks in a single 16mb buffer, beyond which Firefox seems to get unhappy
+    let numChunks = 3 / chunkDuration; // we need about 3 seconds of video buffered to play reliably
 
     let stream = new StreamFile({
         url: source.value,
@@ -68,7 +69,7 @@ async function doit() {
             // already working on it.
             return;
         }
-        if (endTime - vid.currentTime > chunkDuration * 3) {
+        if (endTime - vid.currentTime > chunkDuration * numChunks) {
             // We've got some buffer space, don't bother yet.
             // But do clear out any old stuff
             return;
@@ -77,8 +78,9 @@ async function doit() {
         console.log('continue at ' + startTime);
 
         // Clear out any old stuff
-        if (vid.currentTime > chunkDuration * 3) {
-            sourceBuffer.remove(0, vid.currentTime);
+        let now = vid.currentTime;
+        if (now > chunkDuration) {
+            sourceBuffer.remove(0, now - chunkDuration);
         }
 
         let encoder = new YUVToMP4(decoder.demuxer.videoFormat, startTime);
@@ -99,7 +101,7 @@ async function doit() {
             await pauseThread(); // hack until workers set up
         }
         let vid_body = encoder.flush();
-        console.log('appending at ' + startTime + ' to ' + endTime);
+        console.log('appending at ' + startTime + ' to ' + endTime + '; ' + vid_body.byteLength + ' bytes');
 
         sourceBuffer.timestampOffset = startTime;
         sourceBuffer.appendBuffer(vid_body);
