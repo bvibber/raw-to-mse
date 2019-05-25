@@ -1,3 +1,6 @@
+let regeneratorRuntime = require('regenerator-runtime');
+let babelPolyfill = require('@babel/polyfill');
+
 let Decoder = require('./decoder.js');
 let StreamFile = require('stream-file');
 let YUVToMP4 = require('../lib/yuv-to-mp4.js');

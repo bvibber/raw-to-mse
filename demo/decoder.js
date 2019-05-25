@@ -2,8 +2,10 @@
 
 let {OGVLoader} = require('ogv');
 
+require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-decoder-video-vp9.js');
 require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-decoder-video-vp9-wasm.js');
 require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-decoder-video-vp9-wasm.wasm');
+require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-demuxer-webm.js');
 require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-demuxer-webm-wasm.js');
 require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-demuxer-webm-wasm.wasm');
 require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-worker-audio.js');
@@ -16,18 +18,19 @@ class Decoder {
     }
 
     async init(initialData) {
-        let OGVDemuxerWebMW;
-        let OGVDecoderVideoVP9W;
+        let demuxerFactory;
+        let decoderFactory;
+        let w = (typeof WebAssembly == 'object') ? 'W' : '';
 
         await new Promise((resolve, _reject) => {
-            OGVLoader.loadClass('OGVDemuxerWebMW', (classWrapper) => {
-                OGVDemuxerWebMW = classWrapper;
+            OGVLoader.loadClass('OGVDemuxerWebM' + w, (classWrapper) => {
+                demuxerFactory = classWrapper;
                 resolve();
             });
         });
         await new Promise((resolve, _reject) => {
-            OGVLoader.loadClass('OGVDecoderVideoVP9W', (classWrapper) => {
-                OGVDecoderVideoVP9W = classWrapper;
+            OGVLoader.loadClass('OGVDecoderVideoVP9' + w, (classWrapper) => {
+                decoderFactory = classWrapper;
                 resolve();
             }, {
                 worker: true
@@ -35,7 +38,7 @@ class Decoder {
         });
 
         await new Promise((resolve, _reject) => {
-            OGVDemuxerWebMW().then((module) => {
+            demuxerFactory().then((module) => {
                 this.demuxer = module;
                 resolve();
             });
@@ -51,7 +54,7 @@ class Decoder {
         }
         await new Promise((resolve, _reject) => {
             let videoFormat = this.demuxer.videoFormat;
-            OGVDecoderVideoVP9W({videoFormat}).then((module) => {
+            decoderFactory({videoFormat}).then((module) => {
                 this.decoder = module;
                 resolve();
             });
