@@ -79,6 +79,13 @@ async function doit() {
             //console.log('already working on it');
             return;
         }
+        if (seekTime) {
+            //console.log('seeking to ' + seekTime);
+            await decoder.seek(seekTime);
+            startTime = seekTime;
+            endTime = seekTime;
+            seekTime = undefined;
+        }
         if (endTime - vid.currentTime > chunkDuration * numChunks) {
             //console.log('plenty of space');
             // We've got some buffer space, don't bother yet.
@@ -90,6 +97,7 @@ async function doit() {
         // Clear out any old stuff
         let now = vid.currentTime;
         if (now > chunkDuration) {
+            sourceBuffer.timestampOffset = 0;
             sourceBuffer.remove(0, now - chunkDuration);
         }
         let encoder = new YUVToMP4(decoder.demuxer.videoFormat, startTime);
@@ -122,19 +130,12 @@ async function doit() {
             decoder.flush();
             sourceBuffer.timestampOffset = 0;
             sourceBuffer.remove(0, decoder.demuxer.duration);
-            if (seekTime) {
-                //console.log('seeking to ' + seekTime);
-                await decoder.seek(seekTime);
-                startTime = seekTime;
-                endTime = seekTime;
-                seekTime = undefined;
-            }
             decoding = false;
             doContinue();
             return;
         }
         let vid_body = encoder.flush();
-        //console.log('appending at ' + startTime + ' to ' + endTime + '; ' + vid_body.byteLength + ' bytes');
+        console.log('appending at ' + startTime + ' to ' + endTime + '; ' + vid_body.byteLength + ' bytes');
 
         sourceBuffer.timestampOffset = startTime;
         sourceBuffer.appendBuffer(vid_body);
