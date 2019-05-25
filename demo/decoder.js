@@ -12,7 +12,8 @@ require('!!file-loader?name=[name].[ext]?version=[hash]!ogv/dist/ogv-worker-vide
 class Decoder {
     construct() {
         this.demuxer = null;
-        this.videoDecoder = null;
+        this.decoder = null;
+        this.onseek = null;
     }
 
     async init(initialData) {
@@ -59,6 +60,12 @@ class Decoder {
         await new Promise((resolve, _reject) => {
             this.decoder.init(resolve);
         });
+
+        this.demuxer.onseek = (offset) => {
+            if (this.onseek) {
+                this.onseek(offset);
+            }
+        }
     }
 
     async receiveInput(data) {
@@ -97,6 +104,18 @@ class Decoder {
             })
         });
         return frame;
+    }
+
+    flush() {
+        this.demuxer.flush(() => {});
+        this.decoder.sync(() => {});
+    }
+
+    async seek(targetTime) {
+        this.flush();
+        return await new Promise((resolve, _reject) => {
+            this.demuxer.seekToKeypoint(targetTime, resolve);
+        });
     }
 }
 
