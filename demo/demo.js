@@ -43,6 +43,7 @@ async function doit() {
 
     let stream = new StreamFile({
         url: source.value,
+        progressive: false,
     });
     await stream.load();
     let initialData = await stream.read(chunkSize);
