@@ -120,6 +120,7 @@ async function doit() {
             //console.log('aborting decode');
             abortDecoding = false;
             decoder.flush();
+            sourceBuffer.timestampOffset = 0;
             sourceBuffer.remove(0, decoder.demuxer.duration);
             if (seekTime) {
                 //console.log('seeking to ' + seekTime);
