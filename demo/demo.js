@@ -171,7 +171,15 @@ async function doit() {
                 break;
             }
             if (!samples) {
-                break;
+                if (stream.eof) {
+                    break;
+                }
+                let data = await stream.read(chunkSize);
+                if (abortDecoding) {
+                    break;
+                }
+                await decoder.receiveInput(data);
+                continue;
             }
             if (!audioEnc) {
                 // we need to initialize before we get the audioFormat currently
