@@ -1,6 +1,7 @@
 let Decoder = require('./decoder.js');
 let StreamFile = require('stream-file');
-let YUVToMP4 = require('../lib/yuv-to-mp4.js');
+let YUVToMP4 = require('../lib/yuv-to-mp4');
+let PCMToMP4 = require('../lib/pcm-to-mp4');
 
 let vid = document.querySelector('#sink');
 let source = document.querySelector('#source');
@@ -65,7 +66,9 @@ async function doit() {
 
     let decoding = false;
     let vid_mime = 'video/mp4; codecs="avc1.424033"';
+    let aud_mime = 'audio/mp4; codecs="flac"';
     let sourceBuffer = mediaSource.addSourceBuffer(vid_mime);
+    //let audioBuffer = mediaSource.addSourceBuffer(aud_mime);
 
     sourceBuffer.addEventListener('updateend', (e) => {
         console.log('hey hey');
@@ -121,7 +124,7 @@ async function doit() {
         let encoder = new YUVToMP4(decoder.demuxer.videoFormat, startTime);
 
         while (endTime - startTime < chunkDuration) {
-            console.log('attempting to decode at ' + startTime);
+            //console.log('attempting to decode at ' + startTime);
             let {frame, timestamp} = await decoder.decodeFrame();
             if (abortDecoding) {
                 break;
@@ -142,6 +145,30 @@ async function doit() {
 
             //await pauseThread(); // hack until workers set up
         }
+
+        // Catch up on any audio
+        /*
+        let audStartTime = -1;
+        while (true) {
+            let {samples, timestamp} = await decoder.decodeAudio();
+            if (abortDecoding) {
+                break;
+            }
+            if (!samples) {
+                break;
+            }
+            audStartTime = timestamp;
+            audioEnc.appendSamples(samples, timestamp);
+            if (timestamp >= endTime) {
+                break;
+            }
+            if (decoder.demuxer.audioTimestamp >= endTime) {
+                break;
+            }
+        }
+        */
+
+
         if (abortDecoding) {
             console.log('aborting decode');
             abortDecoding = false;
@@ -162,6 +189,14 @@ async function doit() {
         sourceBuffer.timestampOffset = vidStartTime;
         sourceBuffer.appendBuffer(vid_body);
         // to continue when done with buffering
+
+        /*
+        if (audStartTime >= 0) {
+            let aud_body = audioEnc.flush();
+            audioBuffer.timestampOffset = audStartTime;
+            audioBuffer.appendBuffer(aud_body);
+        }
+        */
     };
     doContinue = (_event) => {
         if (sourceBuffer.updating) {
