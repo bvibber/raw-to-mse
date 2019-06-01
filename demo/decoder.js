@@ -96,20 +96,27 @@ class Decoder {
         });
     }
 
-    async decodeFrame() {
+    async nextVideoTimestamp() {
         while (!this.demuxer.frameReady) {
             let more = await new Promise((resolve, _reject) => {
                 this.demuxer.process(resolve);
             });
             if (!more) {
                 // Out of frames
-                return {
-                    timestamp: 0,
-                    frame: null
-                };
+                return null;
             }
         }
-        let timestamp = this.demuxer.frameTimestamp;
+        return this.demuxer.frameTimestamp;
+    }
+
+    async decodeFrame() {
+        let timestamp = await this.nextVideoTimestamp();
+        if (timestamp === null) {
+            return {
+                timestamp: 0,
+                frame: null
+            };
+        }
         let packet = await new Promise((resolve, _reject) => {
             this.demuxer.dequeueVideoPacket(resolve);
         });

@@ -136,7 +136,7 @@ async function doit() {
         decoding = true;
         console.log('continue at ' + startTime);
         let encoder;
-        while (endTime - startTime < chunkDuration) {
+        while (endTime - startTime <= chunkDuration) {
             //console.log('attempting to decode at ' + startTime);
             let {frame, timestamp} = await decoder.decodeFrame();
             if (abortDecoding) {
@@ -154,9 +154,9 @@ async function doit() {
                 continue;
             }
             if (!encoder) {
-                //startTime = timestamp;
                 encoder = new YUVToMP4(decoder.demuxer.videoFormat, startTime);
             }
+            //console.log('frame', timestamp, timestamp - endTime);
             encoder.appendFrame(frame, timestamp);
             endTime = timestamp;
 
@@ -165,7 +165,7 @@ async function doit() {
 
         // Catch up on any audio
         let audioEnc = null;
-        while (audioEndTime - audioStartTime < chunkDuration) {
+        while (audioEndTime - audioStartTime <= chunkDuration) {
             let {samples, timestamp} = await decoder.decodeAudio();
             if (abortDecoding) {
                 break;
@@ -186,6 +186,7 @@ async function doit() {
                 //audioStartTime = timestamp;
                 audioEnc = new PCMToMP4(decoder.audioDecoder.audioFormat, audioStartTime);
             }
+            //console.log('audio', timestamp, timestamp - audioEndTime);
             //audioEndTime = timestamp + samples[0].length / decoder.audioDecoder.audioFormat.rate;
             audioEndTime = timestamp;
             audioEnc.appendSamples(samples, timestamp);
