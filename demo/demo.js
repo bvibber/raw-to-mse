@@ -111,7 +111,7 @@ async function doit() {
         if (endTime - vid.currentTime > chunkDuration * numChunks &&
             audioEndTime - vid.currentTime > chunkDuration * numChunks
         ) {
-            console.log('plenty of space');
+            //console.log('plenty of space');
             // We've got some buffer space, don't bother yet.
             return;
         }
@@ -122,7 +122,9 @@ async function doit() {
         let earliest = buffered.length ? buffered.start(0) : now;
         let target = Math.floor((now - chunkDuration) / chunkDuration) * chunkDuration;
         if (earliest < target) {
-            console.log('clearing out older stuff ' + earliest + '-' + target);
+            //console.log('clearing out older stuff ' + earliest + '-' + target);
+            audioBuffer.timestampOffset = 0;
+            audioBuffer.remove(earliest, target);
             sourceBuffer.timestampOffset = 0;
             sourceBuffer.remove(earliest, target);
             return; // continue when done
@@ -130,10 +132,9 @@ async function doit() {
 
         decoding = true;
         console.log('continue at ' + startTime);
-        let encoder = new YUVToMP4(decoder.demuxer.videoFormat, startTime);
-
+        let encoder;
         while (endTime - startTime < chunkDuration) {
-            console.log('attempting to decode at ' + startTime);
+            //console.log('attempting to decode at ' + startTime);
             let {frame, timestamp} = await decoder.decodeFrame();
             if (abortDecoding) {
                 break;
@@ -148,6 +149,9 @@ async function doit() {
                 }
                 await decoder.receiveInput(data);
                 continue;
+            }
+            if (!encoder) {
+                encoder = new YUVToMP4(decoder.demuxer.videoFormat, startTime)
             }
             encoder.appendFrame(frame, timestamp);
             endTime = timestamp;
@@ -167,17 +171,21 @@ async function doit() {
             }
             if (!audioEnc) {
                 // we need to initialize before we get the audioFormat currently
-                audioEnc = new PCMToMP4(decoder.audioDecoder.audioFormat, startTime);
+                audioEnc = new PCMToMP4(decoder.audioDecoder.audioFormat, audioStartTime);
             }
+            //audioEndTime = timestamp + samples[0].length / decoder.audioDecoder.audioFormat.rate;
             audioEndTime = timestamp;
             audioEnc.appendSamples(samples, timestamp);
+            //console.log(audioStartTime, timestamp, audioEndTime);
             //console.log('audio in progress at ', audStartTime);
+            /*
             if (timestamp >= endTime) {
                 break;
             }
             if (decoder.demuxer.audioTimestamp >= endTime) {
                 break;
             }
+            */
         }
 
 
@@ -186,6 +194,8 @@ async function doit() {
             abortDecoding = false;
             decoder.flush();
             decoding = false;
+            audioBuffer.timestampOffset = 0;
+            audioBuffer.remove(0, decoder.demuxer.duration);
             sourceBuffer.timestampOffset = 0;
             sourceBuffer.remove(0, decoder.demuxer.duration);
             //doContinue();
