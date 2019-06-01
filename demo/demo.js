@@ -87,12 +87,15 @@ async function doit() {
         }
         if (seekTime) {
             console.log('seeking to ' + seekTime);
+            decoding = true;
             await decoder.seek(seekTime);
+            decoding = false;
             startTime = seekTime;
             endTime = seekTime;
             seekTime = undefined;
             sourceBuffer.timestampOffset = 0;
             sourceBuffer.remove(0, decoder.demuxer.duration);
+            // continue after the sourcebuffer update
             return;
         }
         if (endTime - vid.currentTime > chunkDuration * numChunks) {
