@@ -177,7 +177,6 @@ class Decoder {
         return await new Promise((resolve, reject) => {
             this.audioDecoder.processAudio(packet, (ok) => {
                 if (ok) {
-                    console.log('audio ok', this.audioDecoder);
                     resolve({
                         timestamp,
                         samples: this.audioDecoder.audioBuffer

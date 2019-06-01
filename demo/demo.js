@@ -142,7 +142,7 @@ async function doit() {
             encoder.appendFrame(frame, timestamp);
             endTime = timestamp;
 
-            //await pauseThread(); // hack until workers set up
+            await pauseThread(); // hack until workers set up
         }
 
         // Catch up on any audio
@@ -162,7 +162,7 @@ async function doit() {
             }
             audStartTime = timestamp;
             audioEnc.appendSamples(samples, timestamp);
-            console.log('audio in progress at ', audStartTime);
+            //console.log('audio in progress at ', audStartTime);
             if (timestamp >= endTime) {
                 break;
             }
