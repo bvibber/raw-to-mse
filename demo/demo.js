@@ -92,7 +92,7 @@ async function doit() {
             console.log('updating...');
             return;
         }
-        if (seekTime) {
+        if (seekTime !== undefined) {
             console.log('seeking to ' + seekTime);
             decoding = true;
             await decoder.seek(seekTime);
