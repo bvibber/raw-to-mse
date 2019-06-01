@@ -39,8 +39,8 @@ async function doit() {
     });
     
     let chunkSize = 128 * 1024;
-    let chunkDuration = 0.5; // half second, about 12 frames at 24fps. fits 720p24 chunks in a single 16mb buffer, beyond which Firefox seems to get unhappy
-    let numChunks = 3 / chunkDuration; // we need about 3 seconds of video buffered to play reliably
+    let chunkDuration = 1; // half second, about 12 frames at 24fps. fits 720p24 chunks in a single 16mb buffer, beyond which Firefox seems to get unhappy
+    let numChunks = 4 / chunkDuration; // we need about 3 seconds of video buffered to play reliably
 
     let stream = new StreamFile({
         url: source.value,
