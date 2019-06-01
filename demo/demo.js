@@ -63,6 +63,8 @@ async function doit() {
 
     let startTime = 0;
     let endTime = 0;
+    let audioStartTime = 0;
+    let audioEndTime = 0;
 
     let decoding = false;
     let vid_mime = 'video/mp4; codecs="avc1.424033"';
@@ -92,15 +94,23 @@ async function doit() {
             decoding = true;
             await decoder.seek(seekTime);
             decoding = false;
+
             startTime = seekTime;
             endTime = seekTime;
+            audioStartTime = seekTime;
+            audioEndTime = seekTime;
+
             seekTime = undefined;
             sourceBuffer.timestampOffset = 0;
             sourceBuffer.remove(0, decoder.demuxer.duration);
+            audioBuffer.timestampOffset = 0;
+            audioBuffer.remove(0, decoder.demuxer.duration);
             // continue after the sourcebuffer update
             return;
         }
-        if (endTime - vid.currentTime > chunkDuration * numChunks) {
+        if (endTime - vid.currentTime > chunkDuration * numChunks &&
+            audioEndTime - vid.currentTime > chunkDuration * numChunks
+        ) {
             console.log('plenty of space');
             // We've got some buffer space, don't bother yet.
             return;
@@ -146,9 +156,8 @@ async function doit() {
         }
 
         // Catch up on any audio
-        let audStartTime = -1;
         let audioEnc = null;
-        while (true) {
+        while (audioEndTime - audioStartTime < chunkDuration) {
             let {samples, timestamp} = await decoder.decodeAudio();
             if (abortDecoding) {
                 break;
@@ -160,7 +169,7 @@ async function doit() {
                 // we need to initialize before we get the audioFormat currently
                 audioEnc = new PCMToMP4(decoder.audioDecoder.audioFormat, startTime);
             }
-            audStartTime = timestamp;
+            audioEndTime = timestamp;
             audioEnc.appendSamples(samples, timestamp);
             //console.log('audio in progress at ', audStartTime);
             if (timestamp >= endTime) {
@@ -182,17 +191,23 @@ async function doit() {
             //doContinue();
             return;
         }
-        let vid_body = encoder.flush();
-        console.log('appending at ' + startTime + ' to ' + endTime + '; ' + vid_body.byteLength + ' bytes');
 
-        let vidStartTime = startTime;
-        startTime = endTime;
         decoding = false;
 
+        let vid_body = encoder.flush();
+        //console.log('appending at ' + startTime + ' to ' + endTime + '; ' + vid_body.byteLength + ' bytes');
+        let vidStartTime = startTime;
+        startTime = endTime;
         sourceBuffer.timestampOffset = vidStartTime;
         sourceBuffer.appendBuffer(vid_body);
-        // to continue when done with buffering
 
+        let aud_body = audioEnc.flush();
+        let audStartTime = audioStartTime;
+        audioStartTime = audioEndTime;
+        audioBuffer.timestampOffset = audStartTime;
+        audioBuffer.appendBuffer(aud_body);
+
+        /*
         if (audStartTime >= 0) {
             console.log('audio start:', audStartTime);
             let aud_body = audioEnc.flush();
@@ -209,6 +224,7 @@ async function doit() {
                     btoa(String.fromCharCode.apply(String, hack));
             }
         }
+        */
     };
     doContinue = (_event) => {
         if (sourceBuffer.updating) {
