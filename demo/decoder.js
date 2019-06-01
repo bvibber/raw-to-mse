@@ -127,7 +127,7 @@ class Decoder {
         });
     }
 
-    async decodeAudio() {
+    async audioPacket() {
         while (!this.demuxer.audioReady) {
             let more = await new Promise((resolve, _reject) => {
                 this.demuxer.process(resolve);
@@ -136,7 +136,7 @@ class Decoder {
                 // Out of data?
                 return {
                     timestamp: 0,
-                    samples: null
+                    packet: null
                 };
             }
         }
@@ -144,9 +144,40 @@ class Decoder {
         let packet = await new Promise((resolve, _reject) => {
             this.demuxer.dequeueAudioPacket(resolve);
         });
+        return {
+            timestamp,
+            packet: await packet
+        };
+    }
+
+    async decodeAudio() {
+        // Opus has a header packet in ogv.js model
+        while (!this.audioDecoder.loadedMetadata) {
+            let {timestamp, packet} = await this.audioPacket();
+            if (!packet) {
+                console.log('out of data', this.audioDecoder);
+                return {
+                    timestamp: 0,
+                    samples: null
+                };
+            }
+            await new Promise((resolve, _reject) => {
+                this.audioDecoder.processHeader(packet, resolve);
+            });
+        }
+
+        let {timestamp, packet} = await this.audioPacket();
+        if (!packet) {
+            console.log('out of data', this.audioDecoder);
+            return {
+                timestamp: 0,
+                samples: null
+            };
+        }
         return await new Promise((resolve, reject) => {
             this.audioDecoder.processAudio(packet, (ok) => {
                 if (ok) {
+                    console.log('audio ok', this.audioDecoder);
                     resolve({
                         timestamp,
                         samples: this.audioDecoder.audioBuffer

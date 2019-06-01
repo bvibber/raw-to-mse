@@ -68,10 +68,9 @@ async function doit() {
     let vid_mime = 'video/mp4; codecs="avc1.424033"';
     let aud_mime = 'audio/mp4; codecs="flac"';
     let sourceBuffer = mediaSource.addSourceBuffer(vid_mime);
-    //let audioBuffer = mediaSource.addSourceBuffer(aud_mime);
+    let audioBuffer = mediaSource.addSourceBuffer(aud_mime);
 
     sourceBuffer.addEventListener('updateend', (e) => {
-        console.log('hey hey');
         if (!sourceBuffer.updating && mediaSource.readyState == 'open') {
             doContinue();
         }
@@ -124,7 +123,7 @@ async function doit() {
         let encoder = new YUVToMP4(decoder.demuxer.videoFormat, startTime);
 
         while (endTime - startTime < chunkDuration) {
-            //console.log('attempting to decode at ' + startTime);
+            console.log('attempting to decode at ' + startTime);
             let {frame, timestamp} = await decoder.decodeFrame();
             if (abortDecoding) {
                 break;
@@ -147,8 +146,8 @@ async function doit() {
         }
 
         // Catch up on any audio
-        /*
         let audStartTime = -1;
+        let audioEnc = null;
         while (true) {
             let {samples, timestamp} = await decoder.decodeAudio();
             if (abortDecoding) {
@@ -157,8 +156,13 @@ async function doit() {
             if (!samples) {
                 break;
             }
+            if (!audioEnc) {
+                // we need to initialize before we get the audioFormat currently
+                audioEnc = new PCMToMP4(decoder.audioDecoder.audioFormat, startTime);
+            }
             audStartTime = timestamp;
             audioEnc.appendSamples(samples, timestamp);
+            console.log('audio in progress at ', audStartTime);
             if (timestamp >= endTime) {
                 break;
             }
@@ -166,7 +170,6 @@ async function doit() {
                 break;
             }
         }
-        */
 
 
         if (abortDecoding) {
@@ -190,13 +193,12 @@ async function doit() {
         sourceBuffer.appendBuffer(vid_body);
         // to continue when done with buffering
 
-        /*
         if (audStartTime >= 0) {
+            console.log('audio start:', audStartTime);
             let aud_body = audioEnc.flush();
             audioBuffer.timestampOffset = audStartTime;
             audioBuffer.appendBuffer(aud_body);
         }
-        */
     };
     doContinue = (_event) => {
         if (sourceBuffer.updating) {
