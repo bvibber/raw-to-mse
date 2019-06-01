@@ -33,7 +33,7 @@ async function doit() {
     vid.src = URL.createObjectURL(mediaSource);
     await new Promise((resolve, _reject) => {
         mediaSource.addEventListener('sourceopen', (e) => {
-            URL.revokeObjectURL(vid.src);
+            //URL.revokeObjectURL(vid.src);
             resolve();
         });
     });
@@ -200,12 +200,14 @@ async function doit() {
             audioBuffer.timestampOffset = audStartTime;
             audioBuffer.appendBuffer(aud_body);
 
-            let hack = [];
-            for (let i = 0; i < aud_body.length; i++) {
-                hack[i] = aud_body[i];
+            if (temp.getAttribute('href') == '') {
+                let hack = [];
+                for (let i = 0; i < aud_body.length; i++) {
+                    hack[i] = aud_body[i];
+                }
+                temp.href = 'data:audio/mp4;base64,' +
+                    btoa(String.fromCharCode.apply(String, hack));
             }
-            temp.href = 'data:audio/mp4;base64,' +
-                btoa(String.fromCharCode.apply(String, hack));
         }
     };
     doContinue = (_event) => {
