@@ -196,8 +196,16 @@ async function doit() {
         if (audStartTime >= 0) {
             console.log('audio start:', audStartTime);
             let aud_body = audioEnc.flush();
+            console.log(aud_body);
             audioBuffer.timestampOffset = audStartTime;
             audioBuffer.appendBuffer(aud_body);
+
+            let hack = [];
+            for (let i = 0; i < aud_body.length; i++) {
+                hack[i] = aud_body[i];
+            }
+            temp.href = 'data:audio/mp4;base64,' +
+                btoa(String.fromCharCode.apply(String, hack));
         }
     };
     doContinue = (_event) => {
