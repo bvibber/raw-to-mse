@@ -74,7 +74,10 @@ async function doit() {
 
     sourceBuffer.addEventListener('updateend', (e) => {
         if (!sourceBuffer.updating && mediaSource.readyState == 'open') {
+            console.log('continuing after updateend');
             doContinue();
+        } else {
+            console.log('not ready to continue');
         }
     });
 
@@ -111,7 +114,7 @@ async function doit() {
         if (endTime - vid.currentTime > chunkDuration * numChunks &&
             audioEndTime - vid.currentTime > chunkDuration * numChunks
         ) {
-            //console.log('plenty of space');
+            console.log('plenty of space');
             // We've got some buffer space, don't bother yet.
             return;
         }
@@ -122,11 +125,11 @@ async function doit() {
         let earliest = buffered.length ? buffered.start(0) : now;
         let target = Math.floor((now - chunkDuration) / chunkDuration) * chunkDuration;
         if (earliest < target) {
-            //console.log('clearing out older stuff ' + earliest + '-' + target);
+            console.log('clearing out older stuff ' + earliest + '-' + target);
             audioBuffer.timestampOffset = 0;
-            audioBuffer.remove(earliest, target);
+            audioBuffer.remove(0, target);
             sourceBuffer.timestampOffset = 0;
-            sourceBuffer.remove(earliest, target);
+            sourceBuffer.remove(0, target);
             return; // continue when done
         }
 
@@ -151,7 +154,8 @@ async function doit() {
                 continue;
             }
             if (!encoder) {
-                encoder = new YUVToMP4(decoder.demuxer.videoFormat, startTime)
+                //startTime = timestamp;
+                encoder = new YUVToMP4(decoder.demuxer.videoFormat, startTime);
             }
             encoder.appendFrame(frame, timestamp);
             endTime = timestamp;
@@ -171,6 +175,7 @@ async function doit() {
             }
             if (!audioEnc) {
                 // we need to initialize before we get the audioFormat currently
+                //audioStartTime = timestamp;
                 audioEnc = new PCMToMP4(decoder.audioDecoder.audioFormat, audioStartTime);
             }
             //audioEndTime = timestamp + samples[0].length / decoder.audioDecoder.audioFormat.rate;
