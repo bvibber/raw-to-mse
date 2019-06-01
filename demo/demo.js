@@ -68,6 +68,7 @@ async function doit() {
     let sourceBuffer = mediaSource.addSourceBuffer(vid_mime);
 
     sourceBuffer.addEventListener('updateend', (e) => {
+        console.log('hey hey');
         if (!sourceBuffer.updating && mediaSource.readyState == 'open') {
             doContinue();
         }
@@ -76,34 +77,48 @@ async function doit() {
     let continueDecoding = async () => {
         if (decoding) {
             // already working on it.
-            //console.log('already working on it');
+            console.log('decoding...');
+            return;
+        }
+        if (sourceBuffer.updating) {
+            // wait for it to finish
+            console.log('updating...');
             return;
         }
         if (seekTime) {
-            //console.log('seeking to ' + seekTime);
+            console.log('seeking to ' + seekTime);
             await decoder.seek(seekTime);
             startTime = seekTime;
             endTime = seekTime;
             seekTime = undefined;
+            sourceBuffer.timestampOffset = 0;
+            sourceBuffer.remove(0, decoder.demuxer.duration);
+            return;
         }
         if (endTime - vid.currentTime > chunkDuration * numChunks) {
-            //console.log('plenty of space');
+            console.log('plenty of space');
             // We've got some buffer space, don't bother yet.
             return;
         }
-        decoding = true;
-        //console.log('continue at ' + startTime);
 
         // Clear out any old stuff
         let now = vid.currentTime;
-        if (now > chunkDuration) {
+        let buffered = sourceBuffer.buffered;
+        let earliest = buffered.length ? buffered.start(0) : now;
+        let target = Math.floor((now - chunkDuration) / chunkDuration) * chunkDuration;
+        if (earliest < target) {
+            console.log('clearing out older stuff ' + earliest + '-' + target);
             sourceBuffer.timestampOffset = 0;
-            sourceBuffer.remove(0, now - chunkDuration);
+            sourceBuffer.remove(earliest, target);
+            return; // continue when done
         }
+
+        decoding = true;
+        console.log('continue at ' + startTime);
         let encoder = new YUVToMP4(decoder.demuxer.videoFormat, startTime);
 
         while (endTime - startTime < chunkDuration) {
-            //console.log('attempting to decode at ' + startTime);
+            console.log('attempting to decode at ' + startTime);
             let {frame, timestamp} = await decoder.decodeFrame();
             if (abortDecoding) {
                 break;
@@ -125,23 +140,25 @@ async function doit() {
             //await pauseThread(); // hack until workers set up
         }
         if (abortDecoding) {
-            //console.log('aborting decode');
+            console.log('aborting decode');
             abortDecoding = false;
             decoder.flush();
+            decoding = false;
             sourceBuffer.timestampOffset = 0;
             sourceBuffer.remove(0, decoder.demuxer.duration);
-            decoding = false;
-            doContinue();
+            //doContinue();
             return;
         }
         let vid_body = encoder.flush();
         console.log('appending at ' + startTime + ' to ' + endTime + '; ' + vid_body.byteLength + ' bytes');
 
-        sourceBuffer.timestampOffset = startTime;
-        sourceBuffer.appendBuffer(vid_body);
-
+        let vidStartTime = startTime;
         startTime = endTime;
         decoding = false;
+
+        sourceBuffer.timestampOffset = vidStartTime;
+        sourceBuffer.appendBuffer(vid_body);
+        // to continue when done with buffering
     };
     doContinue = (_event) => {
         if (sourceBuffer.updating) {
