@@ -18,7 +18,7 @@ I'm investigating a hackaround to feed uncompressed data by repacking it into fo
 
 ## Muxing: fragmented MP4
 
-For now I plan to outsource muxing to [mux.js](https://github.com/videojs/mux.js).
+For now I plan to outsource muxing to [mux.js](https://github.com/videojs/mux.js). This requires some small patches for FLAC support.
 
 ## Video: h.264
 
@@ -42,6 +42,8 @@ The failures at higher resolutions may be due to enforcement of rate limit const
 Most browsers now support the lossless FLAC audio encoding in MP4 container, including in MSE. I'm having trouble with it in Safari, which advertises support but does not play any audio in my tests, however.
 
 It should also possible to optimize the encoding for speed by encoding raw PCM blocks without compression, since it's meant to be consumed and thrown away within seconds of encoding.
+
+Runtime generation of 'verbatim' FLAC blocks appears to work in Chrome and Firefox.
 
 ## Audio: ALAC
 
