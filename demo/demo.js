@@ -187,8 +187,9 @@ async function doit() {
                 audioEnc = new PCMToMP4(decoder.audioDecoder.audioFormat, audioStartTime);
             }
             //console.log('audio', timestamp, timestamp - audioEndTime);
-            //audioEndTime = timestamp + samples[0].length / decoder.audioDecoder.audioFormat.rate;
-            audioEndTime = timestamp;
+            audioEndTime = timestamp + samples[0].length / decoder.audioDecoder.audioFormat.rate;
+            console.log('audioStartTime', audioStartTime, 'timestamp', timestamp, 'duration', samples[0].length / decoder.audioDecoder.audioFormat.rate);
+            //audioEndTime = timestamp;
             audioEnc.appendSamples(samples, timestamp);
             //console.log(audioStartTime, timestamp, audioEndTime);
             //console.log('audio in progress at ', audStartTime);
@@ -218,14 +219,26 @@ async function doit() {
 
         decoding = false;
 
+        function dumpBuffered(x) {
+            let b = x.buffered;
+            let o = [];
+            for (let i = 0; i < b.length; i++) {
+                o.push([b.start(i), b.end(i)]);
+            }
+            console.log(o);
+        }
+
         let vid_body = encoder.flush();
-        //console.log('appending at ' + startTime + ' to ' + endTime + '; ' + vid_body.byteLength + ' bytes');
+        dumpBuffered(sourceBuffer);
+        console.log('video appending at ' + startTime + ' to ' + endTime);
         let vidStartTime = startTime;
         startTime = endTime;
         sourceBuffer.timestampOffset = vidStartTime;
         sourceBuffer.appendBuffer(vid_body);
 
         let aud_body = audioEnc.flush();
+        dumpBuffered(audioBuffer);
+        console.log('audio appending at ' + audioStartTime + ' to ' + audioEndTime);
         let audStartTime = audioStartTime;
         audioStartTime = audioEndTime;
         audioBuffer.timestampOffset = audStartTime;
