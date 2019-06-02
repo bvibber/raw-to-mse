@@ -188,7 +188,7 @@ async function doit() {
             }
             //console.log('audio', timestamp, timestamp - audioEndTime);
             audioEndTime = timestamp + samples[0].length / decoder.audioDecoder.audioFormat.rate;
-            console.log('audioStartTime', audioStartTime, 'timestamp', timestamp, 'duration', samples[0].length / decoder.audioDecoder.audioFormat.rate);
+            //console.log('audioStartTime', audioStartTime, 'timestamp', timestamp, 'duration', samples[0].length / decoder.audioDecoder.audioFormat.rate);
             //audioEndTime = timestamp;
             audioEnc.appendSamples(samples, timestamp);
             //console.log(audioStartTime, timestamp, audioEndTime);
@@ -229,16 +229,16 @@ async function doit() {
         }
 
         let vid_body = encoder.flush();
-        dumpBuffered(sourceBuffer);
-        console.log('video appending at ' + startTime + ' to ' + endTime);
+        //dumpBuffered(sourceBuffer);
+        //console.log('video appending at ' + startTime + ' to ' + endTime);
         let vidStartTime = startTime;
         startTime = endTime;
         sourceBuffer.timestampOffset = vidStartTime;
         sourceBuffer.appendBuffer(vid_body);
 
         let aud_body = audioEnc.flush();
-        dumpBuffered(audioBuffer);
-        console.log('audio appending at ' + audioStartTime + ' to ' + audioEndTime);
+        //dumpBuffered(audioBuffer);
+        //console.log('audio appending at ' + audioStartTime + ' to ' + audioEndTime);
         let audStartTime = audioStartTime;
         audioStartTime = audioEndTime;
         audioBuffer.timestampOffset = audStartTime;
