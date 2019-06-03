@@ -37,8 +37,11 @@ async function doit() {
             resolve();
         });
     });
-    
+
+    // for the file read/demuxing
     let chunkSize = 128 * 1024;
+
+    // for the decoded output we send into source buffers
     let chunkDuration = 0.5; // half second, about 12 frames at 24fps. fits 720p24 chunks in a single 16mb buffer, beyond which Firefox seems to get unhappy
     let numChunks = 3 / chunkDuration; // we need about 3 seconds of video buffered to play reliably
 
@@ -65,6 +68,7 @@ async function doit() {
     let endTime = 0;
     let audioStartTime = 0;
     let audioEndTime = 0;
+    let lastClear = 0;
 
     let decoding = false;
     let vid_mime = 'video/mp4; codecs="avc1.424033"';
@@ -106,6 +110,7 @@ async function doit() {
             audioEndTime = seekTime;
 
             seekTime = undefined;
+            lastClear = 0;
             sourceBuffer.timestampOffset = 0;
             sourceBuffer.remove(0, decoder.demuxer.duration);
             audioBuffer.timestampOffset = 0;
@@ -123,11 +128,11 @@ async function doit() {
 
         // Clear out any old stuff
         let now = vid.currentTime;
-        let buffered = sourceBuffer.buffered;
-        let earliest = buffered.length ? buffered.start(0) : now;
-        let target = Math.floor((now - chunkDuration) / chunkDuration) * chunkDuration;
-        if (earliest < target) {
-            console.log('clearing out older stuff ' + earliest + '-' + target);
+        let target = Math.floor(now / chunkDuration) * chunkDuration;
+        //console.log('target', target, 'now', now);
+        if (target - lastClear >= chunkDuration) {
+            console.log('clearing out older stuff ' + lastClear + '-' + target + ' (now is ' + now + ')');
+            lastClear = target;
             audioBuffer.timestampOffset = 0;
             audioBuffer.remove(0, target);
             sourceBuffer.timestampOffset = 0;
@@ -211,6 +216,7 @@ async function doit() {
             abortDecoding = false;
             decoder.flush();
             decoding = false;
+            lastClear = 0;
             audioBuffer.timestampOffset = 0;
             audioBuffer.remove(0, decoder.demuxer.duration);
             sourceBuffer.timestampOffset = 0;
@@ -242,6 +248,7 @@ async function doit() {
             } catch (e) {
                 // Usually means buffer is full, despite our efforts
                 console.log('Error during append', e);
+                console.log(vid_body);
             }
         }
 
@@ -257,6 +264,7 @@ async function doit() {
             } catch (e) {
                 // Usually means buffer is full, despite our efforts
                 console.log('Error during append', e);
+                console.log(aud_body);
             }
     
             if (temp.getAttribute('href') == '') {
