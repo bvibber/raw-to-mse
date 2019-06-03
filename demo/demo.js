@@ -20,7 +20,7 @@ async function pauseThread() {
 
 async function doit() {
     if (mediaSource) {
-        mediaSource.endOfStream();
+        //mediaSource.endOfStream();
     }
     if (doContinue) {
         vid.removeEventListener('timeupdate', doContinue);
@@ -74,10 +74,14 @@ async function doit() {
     let vid_mime = 'video/mp4; codecs="avc1.424033"';
     let aud_mime = 'audio/mp4; codecs="flac"';
     let sourceBuffer = mediaSource.addSourceBuffer(vid_mime);
-    let audioBuffer = mediaSource.addSourceBuffer(aud_mime);
+    let audioBuffer;
+    if (!MediaSource.isTypeSupported('audio/mp4; codecs="alac"')) {
+        // safari currently breaks, will need alac
+        audioBuffer = mediaSource.addSourceBuffer(aud_mime);
+    }
 
     let onupdateend = (e) => {
-        if (!sourceBuffer.updating && !audioBuffer.updating && mediaSource.readyState == 'open') {
+        if (!sourceBuffer.updating && !(audioBuffer && audioBuffer.updating) && mediaSource.readyState == 'open') {
             console.log('continuing after updateend');
             doContinue();
         } else {
@@ -85,7 +89,9 @@ async function doit() {
         }
     };
     sourceBuffer.addEventListener('updateend', onupdateend);
-    audioBuffer.addEventListener('updateend', onupdateend);
+    if (audioBuffer) {
+        audioBuffer.addEventListener('updateend', onupdateend);
+    }
 
     let continueDecoding = async () => {
         if (decoding) {
@@ -93,7 +99,7 @@ async function doit() {
             console.log('decoding...');
             return;
         }
-        if (sourceBuffer.updating || audioBuffer.updating) {
+        if (sourceBuffer.updating || (audioBuffer && audioBuffer.updating)) {
             // wait for it to finish
             console.log('updating...');
             return;
@@ -113,8 +119,10 @@ async function doit() {
             lastClear = 0;
             sourceBuffer.timestampOffset = 0;
             sourceBuffer.remove(0, decoder.demuxer.duration);
-            audioBuffer.timestampOffset = 0;
-            audioBuffer.remove(0, decoder.demuxer.duration);
+            if (audioBuffer) {
+                audioBuffer.timestampOffset = 0;
+                audioBuffer.remove(0, decoder.demuxer.duration);
+            }
             // continue after the sourcebuffer update
             return;
         }
@@ -133,8 +141,10 @@ async function doit() {
         if (target - lastClear >= chunkDuration) {
             console.log('clearing out older stuff ' + lastClear + '-' + target + ' (now is ' + now + ')');
             lastClear = target;
-            audioBuffer.timestampOffset = 0;
-            audioBuffer.remove(0, target);
+            if (audioBuffer) {
+                audioBuffer.timestampOffset = 0;
+                audioBuffer.remove(0, target);
+            }
             sourceBuffer.timestampOffset = 0;
             sourceBuffer.remove(0, target);
             return; // continue when done
@@ -217,8 +227,10 @@ async function doit() {
             decoder.flush();
             decoding = false;
             lastClear = 0;
-            audioBuffer.timestampOffset = 0;
-            audioBuffer.remove(0, decoder.demuxer.duration);
+            if (audioBuffer) {
+                audioBuffer.timestampOffset = 0;
+                audioBuffer.remove(0, decoder.demuxer.duration);
+            }
             sourceBuffer.timestampOffset = 0;
             sourceBuffer.remove(0, decoder.demuxer.duration);
             //doContinue();
@@ -258,13 +270,15 @@ async function doit() {
             //console.log('audio appending at ' + audioStartTime + ' to ' + audioEndTime);
             let audStartTime = audioStartTime;
             audioStartTime = audioEndTime;
-            audioBuffer.timestampOffset = audStartTime;
-            try {
-                audioBuffer.appendBuffer(aud_body);
-            } catch (e) {
-                // Usually means buffer is full, despite our efforts
-                console.log('Error during append', e);
-                console.log(aud_body);
+            if (audioBuffer) {
+                audioBuffer.timestampOffset = audStartTime;
+                try {
+                    audioBuffer.appendBuffer(aud_body);
+                } catch (e) {
+                    // Usually means buffer is full, despite our efforts
+                    console.log('Error during append', e);
+                    console.log(aud_body);
+                }
             }
     
             if (temp.getAttribute('href') == '') {
@@ -277,7 +291,7 @@ async function doit() {
         }
     };
     doContinue = (_event) => {
-        if (sourceBuffer.updating || audioBuffer.updating) {
+        if (sourceBuffer.updating || (audioBuffer && audioBuffer.updating)) {
             console.log('updating');
             return;
         }
