@@ -72,14 +72,16 @@ async function doit() {
     let sourceBuffer = mediaSource.addSourceBuffer(vid_mime);
     let audioBuffer = mediaSource.addSourceBuffer(aud_mime);
 
-    sourceBuffer.addEventListener('updateend', (e) => {
-        if (!sourceBuffer.updating && mediaSource.readyState == 'open') {
+    let onupdateend = (e) => {
+        if (!sourceBuffer.updating && !audioBuffer.updating && mediaSource.readyState == 'open') {
             console.log('continuing after updateend');
             doContinue();
         } else {
             console.log('not ready to continue');
         }
-    });
+    };
+    sourceBuffer.addEventListener('updateend', onupdateend);
+    audioBuffer.addEventListener('updateend', onupdateend);
 
     let continueDecoding = async () => {
         if (decoding) {
@@ -87,7 +89,7 @@ async function doit() {
             console.log('decoding...');
             return;
         }
-        if (sourceBuffer.updating) {
+        if (sourceBuffer.updating || audioBuffer.updating) {
             // wait for it to finish
             console.log('updating...');
             return;
@@ -95,7 +97,7 @@ async function doit() {
         if (seekTime !== undefined) {
             console.log('seeking to ' + seekTime);
             decoding = true;
-            await decoder.seek(seekTime);
+            seekTime = await decoder.seek(seekTime);
             decoding = false;
 
             startTime = seekTime;
@@ -253,7 +255,7 @@ async function doit() {
         }
     };
     doContinue = (_event) => {
-        if (sourceBuffer.updating) {
+        if (sourceBuffer.updating || audioBuffer.updating) {
             console.log('updating');
             return;
         }
