@@ -39,8 +39,8 @@ async function doit() {
     });
     
     let chunkSize = 128 * 1024;
-    let chunkDuration = 1; // half second, about 12 frames at 24fps. fits 720p24 chunks in a single 16mb buffer, beyond which Firefox seems to get unhappy
-    let numChunks = 4 / chunkDuration; // we need about 3 seconds of video buffered to play reliably
+    let chunkDuration = 0.5; // half second, about 12 frames at 24fps. fits 720p24 chunks in a single 16mb buffer, beyond which Firefox seems to get unhappy
+    let numChunks = 3 / chunkDuration; // we need about 3 seconds of video buffered to play reliably
 
     let stream = new StreamFile({
         url: source.value,
@@ -230,28 +230,42 @@ async function doit() {
             console.log(o);
         }
 
-        let vid_body = encoder.flush();
-        //dumpBuffered(sourceBuffer);
-        //console.log('video appending at ' + startTime + ' to ' + endTime);
-        let vidStartTime = startTime;
-        startTime = endTime;
-        sourceBuffer.timestampOffset = vidStartTime;
-        sourceBuffer.appendBuffer(vid_body);
-
-        let aud_body = audioEnc.flush();
-        //dumpBuffered(audioBuffer);
-        //console.log('audio appending at ' + audioStartTime + ' to ' + audioEndTime);
-        let audStartTime = audioStartTime;
-        audioStartTime = audioEndTime;
-        audioBuffer.timestampOffset = audStartTime;
-        audioBuffer.appendBuffer(aud_body);
-
-        if (temp.getAttribute('href') == '') {
-            let hack = "";
-            for (let i = 0; i < aud_body.length; i++) {
-                hack += String.fromCharCode(aud_body[i]);
+        if (encoder) {
+            let vid_body = encoder.flush();
+            //dumpBuffered(sourceBuffer);
+            //console.log('video appending at ' + startTime + ' to ' + endTime);
+            let vidStartTime = startTime;
+            startTime = endTime;
+            sourceBuffer.timestampOffset = vidStartTime;
+            try {
+                sourceBuffer.appendBuffer(vid_body);
+            } catch (e) {
+                // Usually means buffer is full, despite our efforts
+                console.log('Error during append', e);
             }
-            temp.href = 'data:audio/mp4;base64,' + btoa(hack);
+        }
+
+        if (audioEnc) {
+            let aud_body = audioEnc.flush();
+            //dumpBuffered(audioBuffer);
+            //console.log('audio appending at ' + audioStartTime + ' to ' + audioEndTime);
+            let audStartTime = audioStartTime;
+            audioStartTime = audioEndTime;
+            audioBuffer.timestampOffset = audStartTime;
+            try {
+                audioBuffer.appendBuffer(aud_body);
+            } catch (e) {
+                // Usually means buffer is full, despite our efforts
+                console.log('Error during append', e);
+            }
+    
+            if (temp.getAttribute('href') == '') {
+                let hack = "";
+                for (let i = 0; i < aud_body.length; i++) {
+                    hack += String.fromCharCode(aud_body[i]);
+                }
+                temp.href = 'data:audio/mp4;base64,' + btoa(hack);
+            }
         }
     };
     doContinue = (_event) => {
