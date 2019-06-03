@@ -245,12 +245,11 @@ async function doit() {
         audioBuffer.appendBuffer(aud_body);
 
         if (temp.getAttribute('href') == '') {
-            let hack = [];
+            let hack = "";
             for (let i = 0; i < aud_body.length; i++) {
-                hack[i] = aud_body[i];
+                hack += String.fromCharCode(aud_body[i]);
             }
-            temp.href = 'data:audio/mp4;base64,' +
-                btoa(String.fromCharCode.apply(String, hack));
+            temp.href = 'data:audio/mp4;base64,' + btoa(hack);
         }
     };
     doContinue = (_event) => {
