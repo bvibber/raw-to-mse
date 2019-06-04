@@ -262,6 +262,13 @@ async function doit() {
                 console.log('Error during append', e);
                 console.log(vid_body);
             }
+            if (tempv.getAttribute('href') == '') {
+                let hack = "";
+                for (let i = 0; i < vid_body.length; i++) {
+                    hack += String.fromCharCode(vid_body[i]);
+                }
+                tempv.href = 'data:video/mp4;base64,' + btoa(hack);
+            }
         }
 
         if (audioEnc) {
@@ -281,12 +288,12 @@ async function doit() {
                 }
             }
     
-            if (temp.getAttribute('href') == '') {
+            if (tempa.getAttribute('href') == '') {
                 let hack = "";
                 for (let i = 0; i < aud_body.length; i++) {
                     hack += String.fromCharCode(aud_body[i]);
                 }
-                temp.href = 'data:audio/mp4;base64,' + btoa(hack);
+                tempa.href = 'data:audio/mp4;base64,' + btoa(hack);
             }
         }
     };
