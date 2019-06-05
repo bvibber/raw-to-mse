@@ -75,10 +75,10 @@ async function doit() {
     let aud_mime = 'audio/mp4; codecs="flac"';
     let sourceBuffer = mediaSource.addSourceBuffer(vid_mime);
     let audioBuffer;
-    if (!MediaSource.isTypeSupported('audio/mp4; codecs="alac"')) {
+    //if (!MediaSource.isTypeSupported('audio/mp4; codecs="alac"')) {
         // safari currently breaks, will need alac
         audioBuffer = mediaSource.addSourceBuffer(aud_mime);
-    }
+    //}
 
     let onupdateend = (e) => {
         if (!sourceBuffer.updating && !(audioBuffer && audioBuffer.updating) && mediaSource.readyState == 'open') {
