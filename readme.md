@@ -37,6 +37,8 @@ Playback compatibility testing:
 
 The failures at higher resolutions may be due to enforcement of rate limit constraints (?) or some other unknown problem.
 
+On mobile/ARM devices, compatibility is much worse: no resolution plays in any of my testing so far on Android, iPadOS beta, or Windows 10 on ARM64. This is probably due to stricter application of the profile constraints than the Intel/NVIDIA decoders.
+
 ## Audio: FLAC
 
 Most browsers now support the lossless FLAC audio encoding in MP4 container, including in MSE. I'm having trouble with it in Safari, which advertises support but does not play any audio in my tests, however.
