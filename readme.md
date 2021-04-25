@@ -1,6 +1,6 @@
 # raw-to-mse
 
-Experimental tool to build uncompressed audio/video buffers that can be pushed into an HTML `<video>` element through Media Source Extensions.
+Experimental tool to build uncompressed audio/video buffers that can be pushed into an HTML `<video>` element through Media Source Extensions (aka [Media Source API](https://developer.mozilla.org/en-US/docs/Web/API/Media_Source_Extensions_API)).
 
 # Background
 
